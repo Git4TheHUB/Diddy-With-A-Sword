@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Roblox-Style Game (Physics + Character)</title>
+<title>Roblox-Style Game</title>
 <style>
-  body { margin: 0; overflow: hidden; }
+  body { margin: 0; overflow: hidden; cursor: grab; }
 </style>
 </head>
 <body>
@@ -12,175 +12,205 @@
 <script type="module">
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 
-////////////////////////
-// SCENE SETUP
-////////////////////////
+/////////////////////////////
+// BASIC SETUP
+/////////////////////////////
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 
-const camera = new THREE.PerspectiveCamera(
-  70,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000
-);
-
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
+const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
 
-////////////////////////
-// LIGHTING
-////////////////////////
 scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-
 const sun = new THREE.DirectionalLight(0xffffff, 1);
-sun.position.set(10, 20, 10);
+sun.position.set(10,20,10);
 scene.add(sun);
 
-////////////////////////
-// TEXTURES
-////////////////////////
-const loader = new THREE.TextureLoader();
-function loadTexture(path) {
-  const t = loader.load(path);
-  t.magFilter = THREE.NearestFilter;
-  t.minFilter = THREE.NearestFilter;
-  return t;
-}
-
-////////////////////////
+/////////////////////////////
 // GROUND
-////////////////////////
+/////////////////////////////
 const ground = new THREE.Mesh(
-  new THREE.BoxGeometry(50, 1, 50),
-  new THREE.MeshStandardMaterial({
-    map: loadTexture("./textures/grass.png")
-  })
+  new THREE.BoxGeometry(60,1,60),
+  new THREE.MeshStandardMaterial({ color: 0x55aa55 })
 );
 ground.position.y = -0.5;
-ground.receiveShadow = true;
 scene.add(ground);
 
-////////////////////////
-// ROBLOX CHARACTER
-////////////////////////
+/////////////////////////////
+// PLAYER (ROBLOX NOOB)
+/////////////////////////////
 const player = new THREE.Group();
+scene.add(player);
 
-// Body
-const body = new THREE.Mesh(
-  new THREE.BoxGeometry(1.5, 2, 1),
-  new THREE.MeshStandardMaterial({ color: 0x00aaff })
+// Colors
+const NOOB_YELLOW = 0xfff200;
+const NOOB_BLUE = 0x0055ff;
+const NOOB_GREEN = 0x00aa00;
+
+// Torso
+const torso = new THREE.Mesh(
+  new THREE.BoxGeometry(1.5,2,1),
+  new THREE.MeshStandardMaterial({ color: NOOB_BLUE })
 );
-body.position.y = 1;
-player.add(body);
+torso.position.y = 2;
+player.add(torso);
 
 // Head
 const head = new THREE.Mesh(
-  new THREE.BoxGeometry(1.2, 1.2, 1.2),
-  new THREE.MeshStandardMaterial({ color: 0xffcc99 })
+  new THREE.BoxGeometry(1.2,1.2,1.2),
+  new THREE.MeshStandardMaterial({ color: NOOB_YELLOW })
 );
-head.position.y = 2.7;
+head.position.y = 3.6;
 player.add(head);
 
-// Arms
-function makeArm(x) {
-  const arm = new THREE.Mesh(
-    new THREE.BoxGeometry(0.5, 1.5, 0.5),
-    new THREE.MeshStandardMaterial({ color: 0x00aaff })
+// Arms & legs (same size)
+function limb(color){
+  return new THREE.Mesh(
+    new THREE.BoxGeometry(0.6,1.6,0.6),
+    new THREE.MeshStandardMaterial({ color })
   );
-  arm.position.set(x, 1.2, 0);
-  return arm;
 }
 
-const leftArm = makeArm(-1.1);
-const rightArm = makeArm(1.1);
-player.add(leftArm, rightArm);
+const leftArm = limb(NOOB_YELLOW);
+const rightArm = limb(NOOB_YELLOW);
+leftArm.position.set(-1.2,2,0);
+rightArm.position.set(1.2,2,0);
 
-// Legs
-function makeLeg(x) {
-  const leg = new THREE.Mesh(
-    new THREE.BoxGeometry(0.6, 1.5, 0.6),
-    new THREE.MeshStandardMaterial({ color: 0x333333 })
-  );
-  leg.position.set(x, 0, 0);
-  return leg;
-}
+const leftLeg = limb(NOOB_GREEN);
+const rightLeg = limb(NOOB_GREEN);
+leftLeg.position.set(-0.4,0.8,0);
+rightLeg.position.set(0.4,0.8,0);
 
-const leftLeg = makeLeg(-0.4);
-const rightLeg = makeLeg(0.4);
-player.add(leftLeg, rightLeg);
+player.add(leftArm, rightArm, leftLeg, rightLeg);
+player.position.set(0,0,5);
 
-scene.add(player);
+/////////////////////////////
+// SWORD TOOL
+/////////////////////////////
+const sword = new THREE.Group();
 
-////////////////////////
-// PLAYER PHYSICS
-////////////////////////
-const velocity = new THREE.Vector3();
-const gravity = -0.03;
-const speed = 0.15;
-const jumpPower = 0.6;
-let onGround = false;
+const blade = new THREE.Mesh(
+  new THREE.BoxGeometry(0.2,2,0.2),
+  new THREE.MeshStandardMaterial({ color: 0xdddddd })
+);
+blade.position.y = 1;
 
-player.position.set(0, 0, 5);
+const handle = new THREE.Mesh(
+  new THREE.BoxGeometry(0.3,0.6,0.3),
+  new THREE.MeshStandardMaterial({ color: 0x553311 })
+);
+handle.position.y = 0.3;
 
-////////////////////////
+sword.add(blade, handle);
+sword.position.set(0,-0.8,0.4);
+sword.rotation.x = Math.PI/2;
+
+rightArm.add(sword);
+sword.visible = false;
+
+/////////////////////////////
+// INVENTORY
+/////////////////////////////
+const inventory = {
+  sword: true,
+  equipped: false
+};
+
+/////////////////////////////
 // INPUT
-////////////////////////
+/////////////////////////////
 const keys = {};
 window.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
 window.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
-////////////////////////
-// ANIMATIONS
-////////////////////////
+// Equip sword (1)
+window.addEventListener("keydown", e => {
+  if (e.key === "1" && inventory.sword) {
+    inventory.equipped = !inventory.equipped;
+    sword.visible = inventory.equipped;
+    sword.rotation.z = inventory.equipped ? -0.5 : 0;
+  }
+});
+
+/////////////////////////////
+// CAMERA ROTATION
+/////////////////////////////
+let yaw = 0;
+let pitch = 0;
+
+window.addEventListener("mousemove", e => {
+  if (document.pointerLockElement !== document.body) return;
+  yaw -= e.movementX * 0.002;
+  pitch -= e.movementY * 0.002;
+  pitch = Math.max(-0.5, Math.min(0.5, pitch));
+});
+
+window.addEventListener("click", () => {
+  document.body.requestPointerLock();
+});
+
+/////////////////////////////
+// PHYSICS
+/////////////////////////////
+const velocity = new THREE.Vector3();
+const gravity = -0.035;
+const speed = 0.12;
+const jumpPower = 0.75;
+let onGround = false;
+
+let targetRotation = 0;
 let walkTime = 0;
 
-function animateCharacter(state) {
+/////////////////////////////
+// ANIMATION
+/////////////////////////////
+function animateCharacter(state){
   if (state === "idle") {
-    leftArm.rotation.x = 0;
-    rightArm.rotation.x = 0;
-    leftLeg.rotation.x = 0;
-    rightLeg.rotation.x = 0;
+    leftArm.rotation.x = rightArm.rotation.x = 0;
+    leftLeg.rotation.x = rightLeg.rotation.x = 0;
   }
 
   if (state === "walk") {
     walkTime += 0.15;
-    const swing = Math.sin(walkTime) * 0.8;
-    leftArm.rotation.x = swing;
-    rightArm.rotation.x = -swing;
-    leftLeg.rotation.x = -swing;
-    rightLeg.rotation.x = swing;
+    const s = Math.sin(walkTime) * 0.9;
+    leftArm.rotation.x = s;
+    rightArm.rotation.x = -s;
+    leftLeg.rotation.x = -s;
+    rightLeg.rotation.x = s;
   }
 
   if (state === "jump") {
-    leftArm.rotation.x = -1;
-    rightArm.rotation.x = -1;
+    leftArm.rotation.x = -1.2;
+    rightArm.rotation.x = -1.2;
+    leftLeg.rotation.x = 0.6;
+    rightLeg.rotation.x = 0.6;
   }
 }
 
-////////////////////////
+/////////////////////////////
 // UPDATE LOOP
-////////////////////////
-function updatePlayer() {
+/////////////////////////////
+function updatePlayer(){
   let moving = false;
+  let dir = new THREE.Vector3();
 
-  if (keys.w) {
-    player.position.z -= speed;
-    moving = true;
+  if (keys.w) { dir.z -= 1; moving = true; }
+  if (keys.s) { dir.z += 1; moving = true; }
+  if (keys.a) { dir.x -= 1; moving = true; }
+  if (keys.d) { dir.x += 1; moving = true; }
+
+  if (moving) {
+    dir.normalize();
+    const angle = Math.atan2(dir.x, dir.z);
+    targetRotation = angle;
+    player.position.x += Math.sin(targetRotation) * speed;
+    player.position.z += Math.cos(targetRotation) * speed;
   }
-  if (keys.s) {
-    player.position.z += speed;
-    moving = true;
-  }
-  if (keys.a) {
-    player.position.x -= speed;
-    moving = true;
-  }
-  if (keys.d) {
-    player.position.x += speed;
-    moving = true;
-  }
+
+  // Smooth rotation
+  player.rotation.y += (targetRotation - player.rotation.y) * 0.15;
 
   // Jump
   if (keys[" "] && onGround) {
@@ -188,11 +218,9 @@ function updatePlayer() {
     onGround = false;
   }
 
-  // Gravity
   velocity.y += gravity;
   player.position.y += velocity.y;
 
-  // Ground collision
   if (player.position.y <= 0) {
     player.position.y = 0;
     velocity.y = 0;
@@ -200,43 +228,38 @@ function updatePlayer() {
   }
 
   // Animations
-  if (!onGround) {
-    animateCharacter("jump");
-  } else if (moving) {
-    animateCharacter("walk");
-  } else {
-    animateCharacter("idle");
-  }
+  if (!onGround) animateCharacter("jump");
+  else if (moving) animateCharacter("walk");
+  else animateCharacter("idle");
 
-  // Camera follow (Roblox style)
-  const camOffset = new THREE.Vector3(0, 6, 10);
+  // Camera follow
+  const camOffset = new THREE.Vector3(
+    Math.sin(yaw) * 10,
+    6 + pitch * 5,
+    Math.cos(yaw) * 10
+  );
   camera.position.copy(player.position).add(camOffset);
   camera.lookAt(player.position.x, player.position.y + 2, player.position.z);
 }
 
-////////////////////////
-// RESIZE
-////////////////////////
-window.addEventListener("resize", () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-////////////////////////
-// MAIN LOOP
-////////////////////////
-function animate() {
+/////////////////////////////
+// LOOP
+/////////////////////////////
+function animate(){
   requestAnimationFrame(animate);
   updatePlayer();
   renderer.render(scene, camera);
 }
 animate();
 
+window.addEventListener("resize", ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
 </script>
 </body>
 </html>
-
 
 </script>
 
