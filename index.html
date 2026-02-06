@@ -1,1 +1,207 @@
-Coming soon...
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Window Snake</title>
+</head>
+<body>
+<h3>🪟 Window Snake</h3>
+<p>Arrow keys move • R to restart</p>
+
+<script>
+const SIZE = 50;        // VERY SMALL WINDOWS
+const SPEED = 200;
+
+let direction = { x: 1, y: 0 };
+let snake = [];
+let positions = [];
+let apple = null;
+let loop = null;
+let gameOverWin = null;
+
+// ---------- Assets ----------
+const SNAKE_IMG = "https://as1.ftcdn.net/jpg/02/67/98/76/1000_F_267987646_8gsBwIgSOaAXrA3AqbJn6280lIObhokf.jpg";
+const APPLE_IMG = "https://png.pngtree.com/png-vector/20231017/ourmid/pngtree-fresh-apple-fruit-red-png-image_10203073.png";
+
+// ---------- Window Factory ----------
+function openGameWindow(isApple=false, x=0, y=0, isGameOver=false) {
+  const w = window.open(
+    "",
+    "",
+    `width=${SIZE},height=${SIZE},left=${x},top=${y}`
+  );
+
+  const body = w.document.body;
+  body.style.margin = "0";
+  body.style.display = "flex";
+  body.style.alignItems = "center";
+  body.style.justifyContent = "center";
+  body.style.fontFamily = "sans-serif";
+  body.style.color = "white";
+  body.style.textAlign = "center";
+
+  if (isGameOver) {
+    body.style.width = "200px";
+    body.style.height = "160px";
+    body.style.background = "#111";
+    body.style.fontSize = "14px";
+    body.innerHTML = `<h3>💀 GAME OVER</h3><p>Press <b>R</b> to restart</p>`;
+    return w;
+  }
+
+  const img = document.createElement("img");
+  img.src = isApple ? APPLE_IMG : SNAKE_IMG;
+  img.style.width = SIZE + "px";
+  img.style.height = SIZE + "px";
+  img.style.objectFit = "cover";
+  body.appendChild(img);
+
+  // Forward keys to main
+  w.document.addEventListener("keydown", e => {
+    if (w.opener) w.opener.postMessage({ key: e.key }, "*");
+  });
+
+  return w;
+}
+
+// ---------- Input ----------
+window.addEventListener("message", e => handleKey(e.data.key));
+document.addEventListener("keydown", e => handleKey(e.key));
+
+function handleKey(key) {
+  if (key === "ArrowUp" && direction.y === 0) direction = { x: 0, y: -1 };
+  if (key === "ArrowDown" && direction.y === 0) direction = { x: 0, y: 1 };
+  if (key === "ArrowLeft" && direction.x === 0) direction = { x: -1, y: 0 };
+  if (key === "ArrowRight" && direction.x === 0) direction = { x: 1, y: 0 };
+
+  if (key === "r" || key === "R") {
+    if (gameOverWin) {
+      gameOverWin.close();
+      gameOverWin = null;
+      init();
+    }
+  }
+}
+
+// ---------- Helpers ----------
+function randomPos() {
+  return {
+    x: Math.floor(Math.random() * (screen.width - SIZE)),
+    y: Math.floor(Math.random() * (screen.height - SIZE))
+  };
+}
+
+function closeAll() {
+  snake.forEach(s => s.win.close());
+  snake = [];
+  positions = [];
+  if (apple) {
+    apple.win.close();
+    apple = null;
+  }
+}
+
+// ---------- Game Setup ----------
+function init() {
+  closeAll();
+  direction = { x: 1, y: 0 };
+
+  const startX = 200;
+  const startY = 200;
+
+  for (let i = 0; i < 3; i++) {
+    const pos = { x: startX - i * SIZE, y: startY };
+    const win = openGameWindow(false, pos.x, pos.y);
+    snake.push({ win });
+    positions.push(pos);
+  }
+
+  spawnApple();
+
+  clearInterval(loop);
+  loop = setInterval(update, SPEED);
+}
+
+function spawnApple() {
+  if (apple) apple.win.close();
+  const pos = randomPos();
+  apple = {
+    pos,
+    win: openGameWindow(true, pos.x, pos.y)
+  };
+}
+
+// ---------- Game Over ----------
+function gameOver() {
+  clearInterval(loop);
+  closeAll();
+
+  const x = screen.width / 2 - 100;
+  const y = screen.height / 2 - 80;
+
+  gameOverWin = openGameWindow(false, x, y, true);
+
+  // Shaking effect
+  let angle = 0;
+  const shakeInterval = setInterval(() => {
+    if (!gameOverWin || gameOverWin.closed) return clearInterval(shakeInterval);
+    const offset = 10;
+    const nx = x + Math.sin(angle) * offset;
+    const ny = y + Math.cos(angle) * offset;
+    gameOverWin.moveTo(nx, ny);
+    angle += 0.5;
+  }, 30);
+}
+
+// ---------- Game Loop ----------
+function update() {
+  const head = positions[0];
+  const newHead = {
+    x: head.x + direction.x * SIZE,
+    y: head.y + direction.y * SIZE
+  };
+
+  // Wall collision
+  if (
+    newHead.x < 0 ||
+    newHead.y < 0 ||
+    newHead.x > screen.width - SIZE ||
+    newHead.y > screen.height - SIZE
+  ) {
+    gameOver();
+    return;
+  }
+
+  // Self collision
+  for (const p of positions) {
+    if (p.x === newHead.x && p.y === newHead.y) {
+      gameOver();
+      return;
+    }
+  }
+
+  positions.unshift(newHead);
+
+  // Apple collision
+  if (
+    Math.abs(newHead.x - apple.pos.x) < SIZE &&
+    Math.abs(newHead.y - apple.pos.y) < SIZE
+  ) {
+    spawnApple();
+    const win = openGameWindow(false, -1000, -1000);
+    snake.push({ win });
+  } else {
+    positions.pop();
+  }
+
+  // Move windows
+  positions.forEach((pos, i) => {
+    snake[i].win.moveTo(pos.x, pos.y);
+  });
+}
+
+// ---------- Start ----------
+init();
+</script>
+</body>
+</html>
