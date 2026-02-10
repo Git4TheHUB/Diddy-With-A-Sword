@@ -1,207 +1,207 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Window Snake</title>
+<meta charset="UTF-8">
+<title>Void Boss Popup Auto</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+<style>
+html, body {
+    background:#000;
+    margin:0;
+    height:100vh;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'Press Start 2P', monospace;
+}
+
+.popup {
+    width:80vmin;
+    height:80vmin;
+    background:#000;
+    color:white;
+    overflow:hidden;
+    font-size:10px;
+    display:flex;
+    flex-direction:column;
+}
+
+.header {
+    background:#000;
+    padding:10px;
+    text-align:center;
+    letter-spacing:1px;
+}
+
+.content {
+    padding:12px;
+    flex:1;
+    display:flex;
+    flex-direction:column;
+}
+
+/* FORCE MEDIA TO FIT */
+.media {
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    max-height:55%;
+}
+
+.media img, .media video {
+    max-width:90%;
+    max-height:90%;
+    object-fit:contain;
+}
+
+/* UNDERTALE BOX */
+.speech {
+    margin-top:10px;
+    background:#000;
+    border:4px solid #fff;
+    padding:14px;
+    min-height:90px;
+    line-height:1.6em;
+}
+</style>
 </head>
+
 <body>
-<h3>🪟 Window Snake</h3>
-<p>Arrow keys move • R to restart</p>
 
 <script>
-const SIZE = 50;        // VERY SMALL WINDOWS
-const SPEED = 200;
 
-let direction = { x: 1, y: 0 };
-let snake = [];
-let positions = [];
-let apple = null;
-let loop = null;
-let gameOverWin = null;
+const slots = [
+  { type:"png", url:"https://www.freeiconspng.com/uploads/download-google-chrome-icon--15.png", text:"Howdy! I'm CHROME!" },
+  { type:"png", url:"https://www.freeiconspng.com/uploads/download-google-chrome-icon--15.png", text:"CHROME the CHROMER!" },
+  { type:"png", url:"https://cdn.freebiesupply.com/logos/large/2x/google-chrome-logo-png-transparent.png", text:"Hmmm... You're new to CHROME aren'tcha?" }
+];
 
-// ---------- Assets ----------
-const SNAKE_IMG = "https://as1.ftcdn.net/jpg/02/67/98/76/1000_F_267987646_8gsBwIgSOaAXrA3AqbJn6280lIObhokf.jpg";
-const APPLE_IMG = "https://png.pngtree.com/png-vector/20231017/ourmid/pngtree-fresh-apple-fruit-red-png-image_10203073.png";
+const shakeMidDialog = "ISN'T THAT A SHAME!...";
+const secondWindowVideo = "https://github.com/Git4TheHUB/Diddy-With-A-Sword/raw/refs/heads/main/Video%20Project.mp4";
 
-// ---------- Window Factory ----------
-function openGameWindow(isApple=false, x=0, y=0, isGameOver=false) {
-  const w = window.open(
-    "",
-    "",
-    `width=${SIZE},height=${SIZE},left=${x},top=${y}`
-  );
+let slotIndex = 0;
+let popupWin = null;
+let extraPopups = [];
+let midDialogShown = false;
 
-  const body = w.document.body;
-  body.style.margin = "0";
-  body.style.display = "flex";
-  body.style.alignItems = "center";
-  body.style.justifyContent = "center";
-  body.style.fontFamily = "sans-serif";
-  body.style.color = "white";
-  body.style.textAlign = "center";
+window.onload = () => setTimeout(openPopupWindow, 300);
 
-  if (isGameOver) {
-    body.style.width = "200px";
-    body.style.height = "160px";
-    body.style.background = "#111";
-    body.style.fontSize = "14px";
-    body.innerHTML = `<h3>💀 GAME OVER</h3><p>Press <b>R</b> to restart</p>`;
-    return w;
-  }
+function openPopupWindow() {
+    const size = Math.min(screen.width, screen.height) * 0.7;
+    popupWin = window.open("", "voidPopup",
+        `width=${size},height=${size},left=${(screen.width-size)/2},top=${(screen.height-size)/2}`);
 
-  const img = document.createElement("img");
-  img.src = isApple ? APPLE_IMG : SNAKE_IMG;
-  img.style.width = SIZE + "px";
-  img.style.height = SIZE + "px";
-  img.style.objectFit = "cover";
-  body.appendChild(img);
+    popupWin.document.write(`
+    <html><head>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>${document.querySelector('style').innerHTML}</style>
+    </head>
+    <body>
+        <div class="popup">
+            <div class="header">SIGNAL LOST</div>
+            <div class="content" id="content"></div>
+        </div>
+    </body></html>`);
+    popupWin.document.close();
 
-  // Forward keys to main
-  w.document.addEventListener("keydown", e => {
-    if (w.opener) w.opener.postMessage({ key: e.key }, "*");
-  });
-
-  return w;
+    popupWin.document.body.onclick = nextSlot;
+    renderSlot();
 }
 
-// ---------- Input ----------
-window.addEventListener("message", e => handleKey(e.data.key));
-document.addEventListener("keydown", e => handleKey(e.key));
+function typeText(el, text) {
+    el.textContent="";
+    let i=0;
+    const t=setInterval(()=>{
+        el.textContent+=text[i++];
+        if(i>=text.length) clearInterval(t);
+    },26);
+}
 
-function handleKey(key) {
-  if (key === "ArrowUp" && direction.y === 0) direction = { x: 0, y: -1 };
-  if (key === "ArrowDown" && direction.y === 0) direction = { x: 0, y: 1 };
-  if (key === "ArrowLeft" && direction.x === 0) direction = { x: -1, y: 0 };
-  if (key === "ArrowRight" && direction.x === 0) direction = { x: 1, y: 0 };
+function renderSlot() {
+    const slot = slots[slotIndex];
+    const c = popupWin.document.getElementById("content");
 
-  if (key === "r" || key === "R") {
-    if (gameOverWin) {
-      gameOverWin.close();
-      gameOverWin = null;
-      init();
+    let mediaHTML = slot.type==="png"
+        ? `<div class="media"><img src="${slot.url}"></div>`
+        : `<div class="media"><video autoplay muted loop><source src="${slot.url}"></video></div>`;
+
+    c.innerHTML = mediaHTML + `<div class="speech" id="speech"></div>`;
+    typeText(popupWin.document.getElementById("speech"), slot.text);
+}
+
+/* CHAOS POPUPS — USE 4TH DIALOG */
+function spawnExtraPopups() {
+    for(let i=0;i<3;i++){
+        const w = screen.width*0.30;
+        const h = screen.height*0.30;
+        const x = Math.random()*(screen.width-w);
+        const y = Math.random()*(screen.height-h);
+
+        const win = window.open("", "", `width=${w},height=${h},left=${x},top=${y}`);
+        win.document.write(`
+        <body style="margin:0;background:black;color:white;
+        font-family:'Press Start 2P';display:flex;align-items:center;justify-content:center">
+        <div style="border:4px solid white;padding:20px;text-align:center">
+        ${shakeMidDialog}
+        </div></body>`);
+        win.document.close();
+        extraPopups.push(win);
     }
-  }
 }
 
-// ---------- Helpers ----------
-function randomPos() {
-  return {
-    x: Math.floor(Math.random() * (screen.width - SIZE)),
-    y: Math.floor(Math.random() * (screen.height - SIZE))
-  };
+function violentShakeThenReplace() {
+    let elapsed=0, spawned=false;
+    const bx=popupWin.screenX, by=popupWin.screenY;
+
+    const shaker=setInterval(()=>{
+        elapsed+=0.05;
+        popupWin.moveTo(bx+(Math.random()-0.5)*(12+elapsed*30),
+                        by+(Math.random()-0.5)*(12+elapsed*30));
+
+        if(!midDialogShown && elapsed>=4){
+            midDialogShown=true;
+            typeText(popupWin.document.getElementById("speech"), shakeMidDialog);
+        }
+
+        if(!spawned && elapsed>=5){ spawned=true; spawnExtraPopups(); }
+
+        if(elapsed>=8){
+            clearInterval(shaker);
+            extraPopups.forEach(w=>w.close());
+            popupWin.close();
+            openGrowingVideoWindow();
+        }
+    },50);
 }
 
-function closeAll() {
-  snake.forEach(s => s.win.close());
-  snake = [];
-  positions = [];
-  if (apple) {
-    apple.win.close();
-    apple = null;
-  }
+function openGrowingVideoWindow() {
+    const w=screen.width, h=screen.height;
+    const win=window.open("", "", `width=${w},height=20,top=0,left=0`);
+    win.document.write(`<body style="margin:0;background:black;overflow:hidden">
+    <video autoplay muted loop style="width:100vw;height:100vh;object-fit:cover">
+    <source src="${secondWindowVideo}">
+    </video></body>`);
+    win.document.close();
+
+    let cur=20, step=h/300; // 15 sec
+    const grow=setInterval(()=>{
+        cur+=step;
+        win.resizeTo(w,cur);
+        if(cur>=h) clearInterval(grow);
+    },50);
 }
 
-// ---------- Game Setup ----------
-function init() {
-  closeAll();
-  direction = { x: 1, y: 0 };
-
-  const startX = 200;
-  const startY = 200;
-
-  for (let i = 0; i < 3; i++) {
-    const pos = { x: startX - i * SIZE, y: startY };
-    const win = openGameWindow(false, pos.x, pos.y);
-    snake.push({ win });
-    positions.push(pos);
-  }
-
-  spawnApple();
-
-  clearInterval(loop);
-  loop = setInterval(update, SPEED);
+function nextSlot(){
+    slotIndex++;
+    if(slotIndex===3){ violentShakeThenReplace(); return; }
+    if(slotIndex>=slots.length) slotIndex=slots.length-1;
+    renderSlot();
 }
-
-function spawnApple() {
-  if (apple) apple.win.close();
-  const pos = randomPos();
-  apple = {
-    pos,
-    win: openGameWindow(true, pos.x, pos.y)
-  };
-}
-
-// ---------- Game Over ----------
-function gameOver() {
-  clearInterval(loop);
-  closeAll();
-
-  const x = screen.width / 2 - 100;
-  const y = screen.height / 2 - 80;
-
-  gameOverWin = openGameWindow(false, x, y, true);
-
-  // Shaking effect
-  let angle = 0;
-  const shakeInterval = setInterval(() => {
-    if (!gameOverWin || gameOverWin.closed) return clearInterval(shakeInterval);
-    const offset = 10;
-    const nx = x + Math.sin(angle) * offset;
-    const ny = y + Math.cos(angle) * offset;
-    gameOverWin.moveTo(nx, ny);
-    angle += 0.5;
-  }, 30);
-}
-
-// ---------- Game Loop ----------
-function update() {
-  const head = positions[0];
-  const newHead = {
-    x: head.x + direction.x * SIZE,
-    y: head.y + direction.y * SIZE
-  };
-
-  // Wall collision
-  if (
-    newHead.x < 0 ||
-    newHead.y < 0 ||
-    newHead.x > screen.width - SIZE ||
-    newHead.y > screen.height - SIZE
-  ) {
-    gameOver();
-    return;
-  }
-
-  // Self collision
-  for (const p of positions) {
-    if (p.x === newHead.x && p.y === newHead.y) {
-      gameOver();
-      return;
-    }
-  }
-
-  positions.unshift(newHead);
-
-  // Apple collision
-  if (
-    Math.abs(newHead.x - apple.pos.x) < SIZE &&
-    Math.abs(newHead.y - apple.pos.y) < SIZE
-  ) {
-    spawnApple();
-    const win = openGameWindow(false, -1000, -1000);
-    snake.push({ win });
-  } else {
-    positions.pop();
-  }
-
-  // Move windows
-  positions.forEach((pos, i) => {
-    snake[i].win.moveTo(pos.x, pos.y);
-  });
-}
-
-// ---------- Start ----------
-init();
 </script>
+
 </body>
 </html>
